@@ -28,11 +28,11 @@ File::Maintenance - Maintain files based on their age.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -52,7 +52,7 @@ This module allows you to purge files from a directory based on age
     $fm->test(0); # It's all for real
     $fm->purge; # Will delete old *.sess files from /tmp
     $fm->recurse(1);
-    $fm->delete; # Will delete old *.sess files from /tmp and sub-directories
+    $fm->purge; # Will delete old *.sess files from /tmp and sub-directories
 
 You can also archive files (move to another directory) based on age as well
 
@@ -81,7 +81,6 @@ setting the value, so the archive above could have been written as:
     $fm->age('30m);
     $fm->archive;
 
-
 =head1 METHODS
 
 =head2 directory
@@ -95,6 +94,11 @@ The root directory for purging
 The pattern mask for files to process
 
         $fm->pattern('backup*.tar.gz');
+    
+By default, the pattern is a glob. To use a regular expression, it must be
+quoted with the qr operator:
+
+        $fm->pattern(qr/^(foo|bar)\d\d\.jpg$/);        
 
 =head2 archive_directory
 
@@ -212,11 +216,6 @@ sub _get_threshold_date {
         croak("Invalid age");
     }
 }
-
-=head1 WARNING
-
-This is ALPHA software. Use at your own risk. If you do discover a
-problem, please log a BUG
 
 =head1 AUTHOR
 

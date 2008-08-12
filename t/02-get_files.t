@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use FindBin;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use DateTime;
 use File::Basename;
 use File::Path;
@@ -143,6 +143,18 @@ is_deeply (
 		$source_dir . '/dummy.pm',
 	), 
 	'All files older than 2 days, non-recursive'
+);
+
+$fm->age('0m');
+$fm->pattern(qr/^m\w+\.pm$/);
+$fm->recurse(1);
+is_deeply (
+	get_hash_ref($fm->get_files),
+	get_hash_ref(
+		$source_dir . '/mod/mymod.pm',
+		$source_dir . '/mod/another/moremod.pm',
+	), 
+	'Perl packaged modules starting with "m" using regex'
 );
 
 rmtree($source_dir);
