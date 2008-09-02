@@ -9,6 +9,9 @@ use File::Path;
 use File::Basename;
 use DateTime;
 use Carp;
+use IO::Compress::Gzip qw($GzipError);
+use IO::Compress::Zip qw($ZipError);
+use IO::Compress::Bzip2 qw($Bzip2Error);
 
 File::Maintenance->mk_accessors(
     qw(age test recurse directory pattern
@@ -32,7 +35,7 @@ Version 0.02
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 
@@ -81,6 +84,18 @@ setting the value, so the archive above could have been written as:
     $fm->age('30m);
     $fm->archive;
 
+Instead of purging, files can be compressed with either zip, gzip or bzip2 formats:
+
+    $fm->zip;
+
+or
+
+    $fm->gzip;
+
+or
+
+    $fm->bzip2;
+
 =head1 METHODS
 
 =head2 directory
@@ -94,11 +109,11 @@ The root directory for purging
 The pattern mask for files to process
 
         $fm->pattern('backup*.tar.gz');
-    
+
 By default, the pattern is a glob. To use a regular expression, it must be
 quoted with the qr operator:
 
-        $fm->pattern(qr/^(foo|bar)\d\d\.jpg$/);        
+        $fm->pattern(qr/^(foo|bar)\d\d\.jpg$/);
 
 =head2 archive_directory
 
@@ -132,6 +147,66 @@ sub purge {
         if ($self->test) {
             print "TEST: Purging $file\n";
         } else {
+            unlink $file || croak("Unable to purge $file: $!");
+        }
+    }
+}
+
+=head2 gzip
+
+Compresses files older than age using the gzip format
+
+=cut
+
+sub gzip {
+    my $self = shift;
+
+    foreach my $file ($self->get_files) {
+        if ($self->test) {
+            print "TEST: gzipping $file\n";
+        } else {
+            IO::Compress::Gzip::gzip $file => $file . '.gz'
+                or croak ("Unable to gzip $file: $GzipError");
+            unlink $file || croak("Unable to purge $file: $!");
+        }
+    }
+}
+
+=head2 zip
+
+Compresses files older than age using the zip format
+
+=cut
+
+sub zip {
+    my $self = shift;
+
+    foreach my $file ($self->get_files) {
+        if ($self->test) {
+            print "TEST: zipping $file\n";
+        } else {
+            IO::Compress::Zip::zip $file => $file . '.zip'
+                or croak ("Unable to zip $file: $ZipError");
+            unlink $file || croak("Unable to purge $file: $!");
+        }
+    }
+}
+
+=head2 bzip2
+
+Compresses files older than age using the bzip2 format
+
+=cut
+
+sub bzip2 {
+    my $self = shift;
+
+    foreach my $file ($self->get_files) {
+        if ($self->test) {
+            print "TEST: bzipping $file\n";
+        } else {
+            IO::Compress::Bzip2::bzip2 $file => $file . '.bz2'
+                or croak ("Unable to bzip2 $file: $Bzip2Error");
             unlink $file || croak("Unable to purge $file: $!");
         }
     }
@@ -190,7 +265,7 @@ sub get_files {
     my $pattern   = $self->pattern || croak("Pattern not specified");
     my $epoch     = $self->_get_threshold_date();
     my @files;
-    
+
     my $rule = File::Find::Rule->new;
     $rule->file;
     $rule->name($pattern);
